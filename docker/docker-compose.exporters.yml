@@ -1,0 +1,38 @@
+version: "3.8"
+
+# 앱 EC2에 배포 - 메트릭 수집용 Exporter들
+# 모니터링 EC2의 Prometheus가 이 포트들을 수집함
+
+services:
+  # 호스트(EC2) 메트릭: CPU, 메모리, 디스크, 네트워크
+  node-exporter:
+    image: prom/node-exporter:latest
+    ports:
+      - "9100:9100"
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.sysfs=/host/sys'
+      - '--path.rootfs=/rootfs'
+    deploy:
+      mode: global    # 모든 노드에 1개씩
+    restart: unless-stopped
+
+  # 컨테이너 메트릭: 각 컨테이너의 CPU, 메모리
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:latest
+    ports:
+      - "8080:8080"
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+      - /dev/disk/:/dev/disk:ro
+    privileged: true
+    deploy:
+      mode: global    # 모든 노드에 1개씩
+    restart: unless-stopped

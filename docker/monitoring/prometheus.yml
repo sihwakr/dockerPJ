@@ -1,0 +1,60 @@
+global:
+  scrape_interval: 15s          # 15초마다 메트릭 수집
+  evaluation_interval: 15s
+
+alerting:
+  alertmanagers: []
+
+scrape_configs:
+  # Prometheus 자체 메트릭
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  # 모니터링 EC2의 Node Exporter
+  - job_name: 'monitoring-node'
+    static_configs:
+      - targets: ['node-exporter:9100']
+
+  # ============================================
+  # 앱 EC2들 (아래 IP를 실제 EC2 IP로 변경!)
+  # ============================================
+
+  # Swarm 클러스터 노드들
+  - job_name: 'swarm-nodes'
+    static_configs:
+      - targets:
+        - 'SWARM_EC2_1_IP:9100'    # Node Exporter
+        - 'SWARM_EC2_2_IP:9100'
+        - 'SWARM_EC2_3_IP:9100'
+    relabel_configs:
+      - source_labels: [__address__]
+        regex: '(.+):9100'
+        target_label: instance
+        replacement: '${1}'
+
+  # Docker 메트릭 (Swarm)
+  - job_name: 'swarm-docker'
+    static_configs:
+      - targets:
+        - 'SWARM_EC2_1_IP:9323'    # Docker metrics
+        - 'SWARM_EC2_2_IP:9323'
+        - 'SWARM_EC2_3_IP:9323'
+
+  # cAdvisor (컨테이너 메트릭)
+  - job_name: 'swarm-cadvisor'
+    static_configs:
+      - targets:
+        - 'SWARM_EC2_1_IP:8080'    # cAdvisor
+        - 'SWARM_EC2_2_IP:8080'
+        - 'SWARM_EC2_3_IP:8080'
+
+  # ============================================
+  # ECS 클러스터 (ECS 테스트 시 주석 해제)
+  # ============================================
+  # - job_name: 'ecs-nodes'
+  #   static_configs:
+  #     - targets:
+  #       - 'ECS_EC2_1_IP:9100'
+  #       - 'ECS_EC2_2_IP:9100'
+  #       - 'ECS_EC2_3_IP:9100'
